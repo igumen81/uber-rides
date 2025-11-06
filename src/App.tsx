@@ -1,4 +1,9 @@
 import React, { useMemo, useState } from "react";
+import {
+  ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Legend,
+  PieChart, Pie, Cell,
+} from "recharts";
 
 /**
  * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimater)
@@ -101,6 +106,39 @@ function OnTheRoad() {
 
   const quickTimes = [6, 8, 10, 12, 15, 18, 20, 25, 30];
   const quickMiles = [2, 3, 4, 5, 6, 8, 10];
+  // === Charts data (Offer vs Needs + Coverage Donut) ===
+  const offerVal = Math.max(0, Number(fair) || 0);
+  const timeNeed = minByTime;
+  const mileNeed = minByMiles;
+  const need = minCombined;
+
+  const barData = [
+    { name: "Offer", value: offerVal },
+    { name: "Time need", value: timeNeed },
+    { name: "Miles need", value: mileNeed },
+  ];
+
+  let donutData: { name: string; value: number }[] = [];
+  if (offerVal >= need) {
+    donutData = [
+      { name: "Required", value: need },
+      { name: "Over", value: offerVal - need },
+    ];
+  } else {
+    donutData = [
+      { name: "Covered", value: offerVal },
+      { name: "Shortfall", value: need - offerVal },
+    ];
+  }
+
+  const COLORS = {
+    offer: "#10b981",      // emerald
+    time: "#6366f1",       // indigo
+    miles: "#f59e0b",      // amber
+    required: "#94a3b8",   // slate-400
+    over: "#34d399",       // emerald-400
+    shortfall: "#ef4444",  // red-500
+  } as const;
 
   return (
     <div className="text-slate-800">
@@ -208,6 +246,91 @@ function OnTheRoad() {
         </div>
       </section>
 
+      {/* Visuals */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mt-6">
+        <h3 className="text-lg font-semibold mb-3">Visuals — Offer vs Requirements</h3>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* BAR: Offer vs Needs */}
+          <div className="rounded-xl border border-slate-200 p-4">
+            <div className="text-sm text-slate-600 mb-2">Offer vs Time/Miles Needs</div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, ""]} />
+                  <Legend />
+                  <ReferenceLine
+                    y={need}
+                    stroke={COLORS.required}
+                    strokeDasharray="4 4"
+                    label={{ value: `Required: $${need.toFixed(2)}`, fill: "#475569", position: "top" }}
+                  />
+                  <Bar dataKey="value" name="Value ($)" radius={[6, 6, 0, 0]}>
+                    {barData.map((entry, idx) => {
+                      const c = entry.name === "Offer"
+                        ? COLORS.offer
+                        : entry.name === "Time need"
+                        ? COLORS.time
+                        : COLORS.miles;
+                      return <Cell key={`c-${idx}`} fill={c} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* DONUT: Coverage vs Required */}
+          <div className="rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-slate-600">Offer coverage of required minimum</div>
+              <div className={`text-sm font-medium ${offerVal >= need ? "text-emerald-600" : "text-rose-600"}`}>
+                {offerVal >= need ? "✅ Accept" : "❌ Reject"}
+              </div>
+            </div>
+
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="60%"
+                    outerRadius="85%"
+                    paddingAngle={2}
+                  >
+                    {donutData.map((d, i) => {
+                      const fill =
+                        d.name === "Required" ? COLORS.required :
+                        d.name === "Over" ? COLORS.over :
+                        d.name === "Covered" ? COLORS.offer :
+                        COLORS.shortfall; // Shortfall
+                      return <Cell key={`p-${i}`} fill={fill} />;
+                    })}
+                  </Pie>
+                  <Tooltip formatter={(v: number, n: string) => [`$${Number(v).toFixed(2)}`, n]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Center summary */}
+            <div className="mt-3 text-center">
+              <div className="text-2xl font-semibold">
+                {offerVal >= need
+                  ? `+$${(offerVal - need).toFixed(2)} over`
+                  : `-$${(need - offerVal).toFixed(2)} short`}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Offer: <span className="font-medium">${offerVal.toFixed(2)}</span> · Required: <span className="font-medium">${need.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       {/* Time only */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-4">
         <h3 className="text-lg font-semibold mb-1">Decision — Time only</h3>
