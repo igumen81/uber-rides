@@ -151,6 +151,49 @@ function OnTheRoad() {
         </p>
       </header>
 
+      {/* Floors (editable) */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
+        <h3 className="text-lg font-semibold mb-3">Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="rounded-xl border border-slate-200 p-4">
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="permin">
+              $/min floor (minutes)
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">$</span>
+              <input
+                id="permin"
+                type="number"
+                min={0}
+                step={0.05}
+                value={perMinFloor}
+                onChange={(e) => setPerMinFloor(parseFloat(e.target.value))}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <span className="text-xs text-slate-500">/min</span>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 p-4">
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="dpm">
+              $/mi floor (miles)
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">$</span>
+              <input
+                id="dpm"
+                type="number"
+                min={0}
+                step={0.1}
+                value={dpmFloor}
+                onChange={(e) => setDpmFloor(parseFloat(e.target.value))}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <span className="text-xs text-slate-500">/mi</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* Floors (editable) */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
@@ -215,7 +258,6 @@ function OnTheRoad() {
         <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
 
           {/* DONUT: Coverage vs Required */}
-          <div className="rounded-xl border border-slate-200 p-4">
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -255,60 +297,39 @@ function OnTheRoad() {
               <br />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div className="rounded-xl border border-slate-200 p-4">
+
+              <div className={`rounded-xl border ${decisionTime === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
                 <h3 className="text-lg font-semibold mb-1">Time</h3>
-                <p className="text-sm text-slate-600 mb-3">offer ≥ minutes × $/min floor.</p>
-                <div className={`rounded-xl border ${decisionTime === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
-                  <div className="font-semibold mb-1">{decisionTime === "accept" ? "✅ Accept" : "❌ Reject"}</div>
-                  <div className="text-slate-700">
-                    Need at least {fmtCurrency(minByTime)} = {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min.
-                    {decisionTime === "reject" && (
-                      <span> Short by {fmtCurrency(Math.max(0, minByTime - (Number(fair) || 0)))}.</span>
-                    )}
-                  </div>
+                <div className="text-slate-700">
+                  {decisionTime === "accept" ? "✅ " : "❌ "}<span className="font-bold">{fmtCurrency(minByTime)}</span> = {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min.
+                  {decisionTime === "reject" && (
+                    <span><br />Short by {fmtCurrency(Math.max(0, minByTime - (Number(fair) || 0)))}.</span>
+                  )}
                 </div>
+                <p className="text-sm text-slate-600 mb-3"><br />offer ≥ minutes × $/min floor.</p>
               </div>
-              <div className="rounded-xl border border-slate-200 p-4">
+              <div className={`rounded-xl border ${decisionMiles === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
                 <h3 className="text-lg font-semibold mb-1">Miles</h3>
-                <p className="text-sm text-slate-600 mb-3">offer ≥ miles × $/mi floor.</p>
-                <div className={`rounded-xl border ${decisionMiles === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
-                  <div className="font-semibold mb-1">{decisionMiles === "accept" ? "✅ Accept" : "❌ Reject"}</div>
-                  <div className="text-slate-700">
-                    Need at least {fmtCurrency(minByMiles)} = {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi.
-                    {decisionMiles === "reject" && (
-                      <span> Short by {fmtCurrency(Math.max(0, minByMiles - (Number(fair) || 0)))}.</span>
-                    )}
-                  </div>
+                <div className="text-slate-700">
+                  {decisionMiles === "accept" ? "✅ " : "❌ "}<span className="font-bold">{fmtCurrency(minByMiles)}</span> = {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi.
+                  {decisionMiles === "reject" && (
+                    <span><br />Short by {fmtCurrency(Math.max(0, minByMiles - (Number(fair) || 0)))}.</span>
+                  )}
                 </div>
+                <p className="text-sm text-slate-600 mb-3"><br />offer ≥ miles × $/mi floor.</p>
               </div>
-              <div className="rounded-xl border border-slate-200 p-4">
-                <h3 className="text-lg font-semibold mb-1">Combined (minutes + miles)</h3>
-                <p className="text-sm text-slate-600 mb-3">offer ≥ max(minutes × $/min floor, miles × $/mi floor).</p>
-                <div className={`rounded-xl border ${decisionCombined === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
-                  <div className="font-semibold mb-1">{decisionCombined === "accept" ? "✅ Accept" : "❌ Reject"}</div>
-                  <div className="text-slate-700">
-                    Threshold is {fmtCurrency(minCombined)} based on <span className="font-medium">{binding}</span>:
-                    {" "}
-                    {binding === "time" ? (
-                      <>
-                        {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min = {fmtCurrency(minByTime)}
-                      </>
-                    ) : (
-                      <>
-                        {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi = {fmtCurrency(minByMiles)}
-                      </>
-                    )}
-                    . {decisionCombined === "reject" && (
-                      <span> Short by {fmtCurrency(Math.max(0, minCombined - (Number(fair) || 0)))}.</span>
-                    )}
-                  </div>
+              <div className={`rounded-xl border ${decisionCombined === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
+                <h3 className="text-lg font-semibold mb-1">Combined</h3>
+                <div className="text-slate-700">
+                  {decisionCombined === "accept" ? "✅ " : "❌ "}<span className="font-bold">{fmtCurrency(minCombined)}</span> based on <span className="font-bold">{binding}</span>
+                  . {decisionCombined === "reject" && (
+                    <span><br />Short by {fmtCurrency(Math.max(0, minCombined - (Number(fair) || 0)))}.</span>
+                  )}
                 </div>
+                <p className="text-sm text-slate-600 mb-3"><br />offer ≥ max(minutes × $/min floor, miles × $/mi floor).</p>
               </div>
             </div>
-               </div>
-        </div>
-
-
+           </div>
       </section>
 
 
