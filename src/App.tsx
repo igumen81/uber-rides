@@ -360,7 +360,6 @@ function OnTheRoad() {
             </div>
           </div>
         </div>
-        <p className="mt-3 text-xs text-slate-500">Rule of thumb: accept only if offer ≥ max(minutes × $/min, miles × $/mi).</p>
       </section>
     </div>
   );
@@ -372,6 +371,7 @@ function OnTheRoad() {
 function UberEarningsPlanner() {
   // Defaults
   const DEFAULT_GOAL = 1600; // $
+  const DEFAULT_DAYS = 30; // days
   const DEFAULT_HOURS_PER_DAY = 6; // hours
   const DEFAULT_NO_RIDE_PCT = 30; // % idle
 
@@ -391,13 +391,7 @@ function UberEarningsPlanner() {
   const [hoursPerDay, setHoursPerDay] = useState<number>(DEFAULT_HOURS_PER_DAY);
   const [earningsGoal, setEarningsGoal] = useState<number>(DEFAULT_GOAL);
   const [noRidePercent, setNoRidePercent] = useState<number>(DEFAULT_NO_RIDE_PCT);
-
-  // Days in month
-  const daysInMonth = useMemo(() => {
-    const y = Number.isFinite(year) ? year : now.getFullYear();
-    const m = Number.isFinite(monthIndex) ? monthIndex : now.getMonth();
-    return new Date(y, m + 1, 0).getDate();
-  }, [year, monthIndex]);
+  const [daysInMonth, setDaysPerMonth] = useState<number>(DEFAULT_DAYS);
 
   // Derived
   const { dailyTarget, dphAllIn, dphActive, effectiveHours } = useMemo(() => {
@@ -465,14 +459,54 @@ function UberEarningsPlanner() {
       <header className="mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Earnings Planner</h2>
         <p className="mt-2 text-slate-600">
-          Enter your <span className="font-medium">hours per day</span> and your <span className="font-medium">monthly earnings goal</span>.
-          We assume you drive <span className="font-medium">every day</span> of the selected month, with some idle time.
-          We compute per‑ride thresholds for three ride brackets.
+          Enter your <span className="font-medium">monthly earnings goal</span>, <span className="font-medium">days doing rides</span> and <span className="font-medium">hours per day</span>.
         </p>
       </header>
 
       {/* Inputs */}
-      <section className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6 mb-6">
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mb-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="goal1">
+            Monthly earnings goal
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">$</span>
+            <input
+              id="goal1"
+              type="number"
+              min={0}
+              step={50}
+              value={earningsGoal}
+              onChange={(e) => setEarningsGoal(parseFloat(e.target.value))}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="1600"
+            />
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Split across days rides are done.</p>
+        </div>
+
+
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="days1">
+            Days per month
+          </label>
+          <input
+            id="days1"
+            type="number"
+            min={1}
+            max={31}
+            step={1}
+            value={daysInMonth}
+            onChange={(e) => setDaysPerMonth(parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="e.g., 6"
+          />
+          <p className="mt-2 text-xs text-slate-500">
+            Total on‑app days per month.
+          </p>
+        </div>
+
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="hours1">
             Hours per day
@@ -515,63 +549,6 @@ function UberEarningsPlanner() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="goal1">
-            Monthly earnings goal
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">$</span>
-            <input
-              id="goal1"
-              type="number"
-              min={0}
-              step={50}
-              value={earningsGoal}
-              onChange={(e) => setEarningsGoal(parseFloat(e.target.value))}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="1600"
-            />
-          </div>
-          <p className="mt-2 text-xs text-slate-500">Split across all days of the selected month.</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="month1">
-            Month
-          </label>
-          <select
-            id="month1"
-            value={monthIndex}
-            onChange={(e) => setMonthIndex(parseInt(e.target.value, 10))}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {months.map((m, idx) => (
-              <option key={m} value={idx}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <p className="mt-2 text-xs text-slate-500">We assume you drive every day this month.</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="year1">
-            Year
-          </label>
-          <input
-            id="year1"
-            type="number"
-            min={2000}
-            max={2100}
-            step={1}
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <p className="mt-2 text-xs text-slate-500">
-            Days in month: <span className="font-medium">{daysInMonth}</span>
-          </p>
-        </div>
       </section>
 
       {/* Summary */}
