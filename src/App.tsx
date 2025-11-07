@@ -146,51 +146,45 @@ function OnTheRoad() {
       <header className="mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">On the road</h2>
         <p className="mt-2 text-slate-600">
-          Instant accept/reject using minutes, miles, or <span className="font-medium">both</span>. Rule:
-          <span className="font-medium"> accept only if offer ≥ max(minutes × $/min floor, miles × $/mi floor)</span>.
-          Include pickup time/distance.
+          Instant accept/reject using minutes, miles, or both. Include pickup time/distance.<br />
+          <span className="font-bold">Rule:</span><span className="font-medium"> accept only if offer ≥ max(minutes × $/min floor, miles × $/mi floor)</span>.
         </p>
       </header>
 
+
       {/* Floors (editable) */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
-        <h3 className="text-lg font-semibold mb-3">Floors</h3>
+        <h3 className="text-lg font-semibold mb-3">Check Ride</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           <div className="rounded-xl border border-slate-200 p-4">
-            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="permin">
-              $ per active minute
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="mins">
+              Minutes per ride (incl. pickup)
             </label>
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">$</span>
-              <input
-                id="permin"
-                type="number"
-                min={0}
-                step={0.05}
-                value={perMinFloor}
-                onChange={(e) => setPerMinFloor(parseFloat(e.target.value))}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <span className="text-xs text-slate-500">/min</span>
-            </div>
+            <input
+              id="mins"
+              type="number"
+              min={0}
+              step={1}
+              value={minutes}
+              onChange={(e) => setMinutes(parseFloat(e.target.value))}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="e.g., 12"
+            />
           </div>
           <div className="rounded-xl border border-slate-200 p-4">
-            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="dpm">
-              $ per mile
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="miles">
+              Miles per ride (incl. pickup)
             </label>
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">$</span>
-              <input
-                id="dpm"
-                type="number"
-                min={0}
-                step={0.1}
-                value={dpmFloor}
-                onChange={(e) => setDpmFloor(parseFloat(e.target.value))}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <span className="text-xs text-slate-500">/mi</span>
-            </div>
+            <input
+              id="miles"
+              type="number"
+              min={0}
+              step={0.1}
+              value={miles}
+              onChange={(e) => setMiles(parseFloat(e.target.value))}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="e.g., 5"
+            />
           </div>
           <div className="rounded-xl border border-slate-200 p-4">
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="offer">
@@ -212,85 +206,16 @@ function OnTheRoad() {
         </div>
       </section>
 
-      {/* Inputs shared */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="mins">
-            Minutes per ride (incl. pickup)
-          </label>
-          <input
-            id="mins"
-            type="number"
-            min={0}
-            step={1}
-            value={minutes}
-            onChange={(e) => setMinutes(parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g., 12"
-          />
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="miles">
-            Miles per ride (incl. pickup)
-          </label>
-          <input
-            id="miles"
-            type="number"
-            min={0}
-            step={0.1}
-            value={miles}
-            onChange={(e) => setMiles(parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g., 5"
-          />
-        </div>
-      </section>
-
-      {/* Visuals */}
+     {/* Visuals */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mt-6">
-        <h3 className="text-lg font-semibold mb-3">Visuals — Offer vs Requirements</h3>
+        <h3 className={`text-lg font-semibold mb-3 ${offerVal >= need ? "text-emerald-600" : "text-rose-600"}`}>
+          {offerVal >= need ? "✅ Accept" : "❌ Reject"}
+        </h3>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* BAR: Offer vs Needs */}
-          <div className="rounded-xl border border-slate-200 p-4">
-            <div className="text-sm text-slate-600 mb-2">Offer vs Time/Miles Needs</div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, ""]} />
-                  <Legend />
-                  <ReferenceLine
-                    y={need}
-                    stroke={COLORS.required}
-                    strokeDasharray="4 4"
-                    label={{ value: `Required: $${need.toFixed(2)}`, fill: "#475569", position: "top" }}
-                  />
-                  <Bar dataKey="value" name="Value ($)" radius={[6, 6, 0, 0]}>
-                    {barData.map((entry, idx) => {
-                      const c = entry.name === "Offer"
-                        ? COLORS.offer
-                        : entry.name === "Time need"
-                        ? COLORS.time
-                        : COLORS.miles;
-                      return <Cell key={`c-${idx}`} fill={c} />;
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
 
           {/* DONUT: Coverage vs Required */}
           <div className="rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-slate-600">Offer coverage of required minimum</div>
-              <div className={`text-sm font-medium ${offerVal >= need ? "text-emerald-600" : "text-rose-600"}`}>
-                {offerVal >= need ? "✅ Accept" : "❌ Reject"}
-              </div>
-            </div>
-
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -327,64 +252,65 @@ function OnTheRoad() {
               <div className="text-xs text-slate-500 mt-1">
                 Offer: <span className="font-medium">${offerVal.toFixed(2)}</span> · Required: <span className="font-medium">${need.toFixed(2)}</span>
               </div>
+              <br />
             </div>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <h3 className="text-lg font-semibold mb-1">Time</h3>
+                <p className="text-sm text-slate-600 mb-3">offer ≥ minutes × $/min floor.</p>
+                <div className={`rounded-xl border ${decisionTime === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
+                  <div className="font-semibold mb-1">{decisionTime === "accept" ? "✅ Accept" : "❌ Reject"}</div>
+                  <div className="text-slate-700">
+                    Need at least {fmtCurrency(minByTime)} = {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min.
+                    {decisionTime === "reject" && (
+                      <span> Short by {fmtCurrency(Math.max(0, minByTime - (Number(fair) || 0)))}.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <h3 className="text-lg font-semibold mb-1">Miles</h3>
+                <p className="text-sm text-slate-600 mb-3">offer ≥ miles × $/mi floor.</p>
+                <div className={`rounded-xl border ${decisionMiles === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
+                  <div className="font-semibold mb-1">{decisionMiles === "accept" ? "✅ Accept" : "❌ Reject"}</div>
+                  <div className="text-slate-700">
+                    Need at least {fmtCurrency(minByMiles)} = {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi.
+                    {decisionMiles === "reject" && (
+                      <span> Short by {fmtCurrency(Math.max(0, minByMiles - (Number(fair) || 0)))}.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <h3 className="text-lg font-semibold mb-1">Combined (minutes + miles)</h3>
+                <p className="text-sm text-slate-600 mb-3">offer ≥ max(minutes × $/min floor, miles × $/mi floor).</p>
+                <div className={`rounded-xl border ${decisionCombined === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
+                  <div className="font-semibold mb-1">{decisionCombined === "accept" ? "✅ Accept" : "❌ Reject"}</div>
+                  <div className="text-slate-700">
+                    Threshold is {fmtCurrency(minCombined)} based on <span className="font-medium">{binding}</span>:
+                    {" "}
+                    {binding === "time" ? (
+                      <>
+                        {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min = {fmtCurrency(minByTime)}
+                      </>
+                    ) : (
+                      <>
+                        {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi = {fmtCurrency(minByMiles)}
+                      </>
+                    )}
+                    . {decisionCombined === "reject" && (
+                      <span> Short by {fmtCurrency(Math.max(0, minCombined - (Number(fair) || 0)))}.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+               </div>
         </div>
-      </section>
-      {/* Time only */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-4">
-        <h3 className="text-lg font-semibold mb-1">Decision — Time only</h3>
-        <p className="text-sm text-slate-600 mb-3">Accept if offer ≥ minutes × $/min floor.</p>
-        <div className={`rounded-xl border ${decisionTime === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
-          <div className="font-semibold mb-1">{decisionTime === "accept" ? "✅ Accept" : "❌ Reject"}</div>
-          <div className="text-slate-700">
-            Need at least {fmtCurrency(minByTime)} = {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min.
-            {decisionTime === "reject" && (
-              <span> Short by {fmtCurrency(Math.max(0, minByTime - (Number(fair) || 0)))}.</span>
-            )}
-          </div>
-        </div>
+
+
       </section>
 
-      {/* Miles only */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-4">
-        <h3 className="text-lg font-semibold mb-1">Decision — Miles only</h3>
-        <p className="text-sm text-slate-600 mb-3">Accept if offer ≥ miles × $/mi floor.</p>
-        <div className={`rounded-xl border ${decisionMiles === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
-          <div className="font-semibold mb-1">{decisionMiles === "accept" ? "✅ Accept" : "❌ Reject"}</div>
-          <div className="text-slate-700">
-            Need at least {fmtCurrency(minByMiles)} = {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi.
-            {decisionMiles === "reject" && (
-              <span> Short by {fmtCurrency(Math.max(0, minByMiles - (Number(fair) || 0)))}.</span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Combined */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="text-lg font-semibold mb-1">Decision — Combined (minutes + miles)</h3>
-        <p className="text-sm text-slate-600 mb-3">Accept only if offer ≥ max(minutes × $/min floor, miles × $/mi floor).</p>
-        <div className={`rounded-xl border ${decisionCombined === "accept" ? "border-emerald-300" : "border-rose-300"} p-4`}>
-          <div className="font-semibold mb-1">{decisionCombined === "accept" ? "✅ Accept" : "❌ Reject"}</div>
-          <div className="text-slate-700">
-            Threshold is {fmtCurrency(minCombined)} based on <span className="font-medium">{binding}</span>:
-            {" "}
-            {binding === "time" ? (
-              <>
-                {fmtNumber(minutes, 0)} min × {fmtCurrency(perMinFloor)}/min = {fmtCurrency(minByTime)}
-              </>
-            ) : (
-              <>
-                {fmtNumber(miles, 1)} mi × {fmtCurrency(dpmFloor)}/mi = {fmtCurrency(minByMiles)}
-              </>
-            )}
-            . {decisionCombined === "reject" && (
-              <span> Short by {fmtCurrency(Math.max(0, minCombined - (Number(fair) || 0)))}.</span>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* Quick mental cheat‑sheet */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mt-6">
