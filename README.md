@@ -162,7 +162,7 @@ This document explains the earnings logic behind the planner and provides a pock
 
 ---
 
-## Core formulas (GitHub-friendly)
+## Core formulas
 
 **Daily target (on driving days)**
 ```
@@ -341,7 +341,7 @@ This document explains the earnings logic behind the planner and provides a pock
 
 ---
 
-## Core formulas (GitHub-friendly)
+## Core formulas
 
 **Daily target (on driving days)**
 ```
@@ -545,7 +545,7 @@ This keeps the UI simple while reflecting real-world differences between short, 
 
 ---
 
-## Formulas (GitHub-friendly)
+## Formulas
 
 ```
 active_minutes_per_day = hours_per_day * 60 * (1 - 0.30)
@@ -705,7 +705,7 @@ This keeps the UI simple while reflecting real-world differences between short, 
 
 ---
 
-## Formulas (GitHub-friendly)
+## Formulas
 
 ```
 active_minutes_per_day = hours_per_day * 60 * (1 - 0.30)
