@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Legend,
@@ -14,12 +14,12 @@ import {
 } from "./calculations";
 
 /**
- * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimater)
+ * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimator)
  *
  * Tabs:
  *  1) On the road — instant accept/reject using minutes, miles, or both (combined).
  *  2) Earnings Planner — monthly goal, idle%, thresholds.
- *  3) Earnings Estimater — 2‑input (hours/day, days/month) monthly estimator with blended ride mix.
+ *  3) Earnings Estimator — 2‑input (hours/day, days/month) monthly estimator with blended ride mix.
  *
  * Notes:
  *  • Core calculator logic lives in src/calculations.ts and is verified by tests/calculations.test.ts.
@@ -64,7 +64,7 @@ function Tabs({
     <div className="flex items-center gap-2">
       <Item id="road" label="On the road" />
       <Item id="planner" label="Earnings Planner" />
-      <Item id="estimator" label="Earnings Estimater" />
+      <Item id="estimator" label="Earnings Estimator" />
     </div>
   );
 }
@@ -193,7 +193,7 @@ function OnTheRoad() {
       </section>
 
 
-      {/* Floors (editable) */}
+      {/* Ride check inputs */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
         <h3 className="text-lg font-semibold mb-3">Check Ride</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -382,7 +382,10 @@ function UberEarningsPlanner() {
   const [hoursPerDay, setHoursPerDay] = useState<number>(DEFAULT_HOURS_PER_DAY);
   const [earningsGoal, setEarningsGoal] = useState<number>(DEFAULT_GOAL);
   const [noRidePercent, setNoRidePercent] = useState<number>(DEFAULT_NO_RIDE_PCT);
-  const [daysInMonth, setDaysPerMonth] = useState<number>(DEFAULT_DAYS);
+  const [daysInMonth, setDaysInMonth] = useState<number>(DEFAULT_DAYS);
+  const setSafeDaysInMonth = useCallback((value: number) => {
+    setDaysInMonth(() => sanitizeDaysInMonth(value));
+  }, []);
 
   // Derived
   const { dailyTarget, dphAllIn, dphActive, effectiveHours } = useMemo(
@@ -462,7 +465,7 @@ function UberEarningsPlanner() {
             max={31}
             step={1}
             value={daysInMonth}
-            onChange={(e) => setDaysPerMonth(parseFloat(e.target.value))}
+            onChange={(e) => setSafeDaysInMonth(parseFloat(e.target.value))}
             className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="e.g., 6"
           />
@@ -574,7 +577,7 @@ function UberEarningsPlanner() {
 }
 
 // -----------------------------
-// (3) Earnings Estimater — 2 inputs
+// (3) Earnings Estimator — 2 inputs
 // -----------------------------
 function MonthlyEarningsEstimator() {
   // Inputs
@@ -600,7 +603,7 @@ function MonthlyEarningsEstimator() {
     <div className="text-slate-800">
       {/* Header */}
       <header className="mb-6">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Earnings Estimater</h2>
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Earnings Estimator</h2>
         <p className="mt-2 text-slate-600">
           Two inputs only. We assume <span className="font-medium">{ESTIMATOR_CONSTANTS.IDLE_PCT * 100}% idle time</span> and a
           blended ride mix by duration. Earnings are shown as a conservative floor and a realistic blended estimate.
