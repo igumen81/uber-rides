@@ -22,8 +22,37 @@ Module._extensions[".ts"] = function loadTs(module, filename) {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const testPath = path.join(__dirname, "calculations.test.ts");
-require(testPath);
+const vitestStubPath = path.join(__dirname, "_vitestStub.cjs");
+const originalResolveFilename = Module._resolveFilename;
+Module._resolveFilename = function resolveWithVitestStub(request, parent, isMain, options) {
+  if (request === "vitest") {
+    return vitestStubPath;
+  }
+  return originalResolveFilename.call(this, request, parent, isMain, options);
+};
+
+const args = process.argv.slice(2);
+const requestedPaths = [];
+for (let i = 0; i < args.length; i += 1) {
+  if (args[i] === "--runTestsByPath") {
+    for (let j = i + 1; j < args.length && !args[j].startsWith("--"); j += 1) {
+      requestedPaths.push(args[j]);
+      i = j;
+    }
+  }
+}
+
+const testPaths = (requestedPaths.length > 0
+  ? requestedPaths.map((p) => (path.isAbsolute(p) ? p : path.join(process.cwd(), p)))
+  : fs
+      .readdirSync(__dirname)
+      .filter((file) => file.endsWith(".test.ts"))
+      .map((file) => path.join(__dirname, file))
+).filter((value, index, self) => self.indexOf(value) === index);
+
+for (const testPath of testPaths) {
+  require(testPath);
+}
 
 const vitest = require("vitest");
 if (typeof vitest.runSuites !== "function") {

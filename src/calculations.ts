@@ -171,9 +171,15 @@ export function computeEstimatorMetrics(input: EstimatorInput): EstimatorMetrics
   const monthlyEarningsBlended = dailyEarningsBlended * safeDays;
 
   const weightedMultiplier =
-    (ESTIMATOR_CONSTANTS.RIDE_MIX.short.avgMin * ESTIMATOR_CONSTANTS.RIDE_MIX.short.rateMult +
-      ESTIMATOR_CONSTANTS.RIDE_MIX.medium.avgMin * ESTIMATOR_CONSTANTS.RIDE_MIX.medium.rateMult +
-      ESTIMATOR_CONSTANTS.RIDE_MIX.long.avgMin * ESTIMATOR_CONSTANTS.RIDE_MIX.long.rateMult) /
+    (ESTIMATOR_CONSTANTS.RIDE_MIX.short.defaultCount *
+      ESTIMATOR_CONSTANTS.RIDE_MIX.short.avgMin *
+      ESTIMATOR_CONSTANTS.RIDE_MIX.short.rateMult +
+      ESTIMATOR_CONSTANTS.RIDE_MIX.medium.defaultCount *
+        ESTIMATOR_CONSTANTS.RIDE_MIX.medium.avgMin *
+        ESTIMATOR_CONSTANTS.RIDE_MIX.medium.rateMult +
+      ESTIMATOR_CONSTANTS.RIDE_MIX.long.defaultCount *
+        ESTIMATOR_CONSTANTS.RIDE_MIX.long.avgMin *
+        ESTIMATOR_CONSTANTS.RIDE_MIX.long.rateMult) /
     patternMinutes;
   const blendedPerHr = ESTIMATOR_CONSTANTS.BASE_PER_MIN * weightedMultiplier * 60;
 
