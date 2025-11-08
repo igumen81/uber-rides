@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Legend,
   PieChart, Pie, Cell,
 } from "recharts";
+import { computePlannerMetrics, sanitizeDaysInMonth } from "./planner.js";
 
 /**
  * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimator)
@@ -391,27 +392,22 @@ function UberEarningsPlanner() {
   const [hoursPerDay, setHoursPerDay] = useState<number>(DEFAULT_HOURS_PER_DAY);
   const [earningsGoal, setEarningsGoal] = useState<number>(DEFAULT_GOAL);
   const [noRidePercent, setNoRidePercent] = useState<number>(DEFAULT_NO_RIDE_PCT);
-  const [daysInMonth, setDaysPerMonth] = useState<number>(DEFAULT_DAYS);
+  const [daysInMonth, setDaysInMonth] = useState<number>(DEFAULT_DAYS);
+  const setSafeDaysInMonth = useCallback((value: number) => {
+    setDaysInMonth(() => sanitizeDaysInMonth(value));
+  }, []);
 
   // Derived
-  const { dailyTarget, dphAllIn, dphActive, effectiveHours } = useMemo(() => {
-    const safeHours = Math.max(0.1, Number(hoursPerDay) || 0); // prevent divide-by-zero
-    const safeGoal = Math.max(0, Number(earningsGoal) || 0);
-    const pctIdle = Math.min(95, Math.max(0, Number(noRidePercent) || 0)) / 100; // clamp 0–95%
-
-    const daily = safeGoal / daysInMonth; // goal spread across all days of selected month
-    const allInDph = daily / safeHours; // $/hr including idle
-
-    const effHours = Math.max(0.1, safeHours * (1 - pctIdle));
-    const activeDph = daily / effHours; // $/hr during active time
-
-    return {
-      dailyTarget: daily,
-      dphAllIn: allInDph,
-      dphActive: activeDph,
-      effectiveHours: effHours,
-    };
-  }, [hoursPerDay, earningsGoal, daysInMonth, noRidePercent]);
+  const { dailyTarget, dphAllIn, dphActive, effectiveHours } = useMemo(
+    () =>
+      computePlannerMetrics({
+        hoursPerDay,
+        earningsGoal,
+        daysInMonth,
+        noRidePercent,
+      }),
+    [hoursPerDay, earningsGoal, daysInMonth, noRidePercent]
+  );
 
   // Per‑ride thresholds table
   type Row = {
@@ -498,7 +494,7 @@ function UberEarningsPlanner() {
             max={31}
             step={1}
             value={daysInMonth}
-            onChange={(e) => setDaysPerMonth(parseFloat(e.target.value))}
+            onChange={(e) => setSafeDaysInMonth(parseFloat(e.target.value))}
             className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="e.g., 6"
           />
