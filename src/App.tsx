@@ -4,6 +4,14 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ReferenceLine, Legend,
   PieChart, Pie, Cell,
 } from "recharts";
+import {
+  computeOnTheRoadMetrics,
+  computePlannerMetrics,
+  buildPlannerThresholdRows,
+  ESTIMATOR_CONSTANTS,
+  computeEstimatorMetrics,
+  type PlannerThresholdRow,
+} from "./calculations";
 
 /**
  * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimater)
@@ -14,7 +22,7 @@ import {
  *  3) Earnings Estimater — 2‑input (hours/day, days/month) monthly estimator with blended ride mix.
  *
  * Notes:
- *  • Lightweight runtime sanity tests live at the bottom.
+ *  • Core calculator logic lives in src/calculations.ts and is verified by tests/calculations.test.ts.
  */
 
 // -----------------------------
@@ -74,34 +82,24 @@ function OnTheRoad() {
   const [miles, setMiles] = useState<number>(5);
   const [fair, setFair] = useState<number>(10); // offer amount
 
-  // --- Time‑only ---
-  const minByTime = useMemo(() => {
-    const m = Math.max(0, Number(minutes) || 0);
-    const floor = Math.max(0, Number(perMinFloor) || 0);
-    return Math.ceil(m * floor * 100) / 100; // round up to cents
-  }, [minutes, perMinFloor]);
-  const decisionTime = useMemo(
-    () => ((Number(fair) || 0) >= minByTime ? "accept" : "reject"),
-    [fair, minByTime]
-  );
-
-  // --- Miles‑only ---
-  const minByMiles = useMemo(() => {
-    const mi = Math.max(0, Number(miles) || 0);
-    const floor = Math.max(0, Number(dpmFloor) || 0);
-    return Math.ceil(mi * floor * 100) / 100;
-  }, [miles, dpmFloor]);
-  const decisionMiles = useMemo(
-    () => ((Number(fair) || 0) >= minByMiles ? "accept" : "reject"),
-    [fair, minByMiles]
-  );
-
-  // --- Combined (minutes + miles) ---
-  const minCombined = useMemo(() => Math.max(minByTime, minByMiles), [minByTime, minByMiles]);
-  const binding = useMemo(() => (minByTime >= minByMiles ? "time" : "miles"), [minByTime, minByMiles]);
-  const decisionCombined = useMemo(
-    () => ((Number(fair) || 0) >= minCombined ? "accept" : "reject"),
-    [fair, minCombined]
+  const {
+    minByTime,
+    minByMiles,
+    minCombined,
+    binding,
+    decisionTime,
+    decisionMiles,
+    decisionCombined,
+  } = useMemo(
+    () =>
+      computeOnTheRoadMetrics({
+        minutes,
+        miles,
+        offer: fair,
+        perMinFloor,
+        dpmFloor,
+      }),
+    [minutes, miles, fair, perMinFloor, dpmFloor]
   );
 
   const quickTimes = [6, 8, 10, 12, 15, 18, 20, 25, 30];
@@ -375,13 +373,6 @@ function UberEarningsPlanner() {
   const DEFAULT_HOURS_PER_DAY = 6; // hours
   const DEFAULT_NO_RIDE_PCT = 30; // % idle
 
-  // DPM floors by bracket (dollars per mile)
-  const DPM_FLOORS = {
-    r10: 1.4, // 10 rides/day
-    r10to20: 1.7, // 10–20 rides/day
-    r20to25: 2.4, // 20–25 rides/day
-  } as const;
-
   // Month/year
   const now = new Date();
   const [monthIndex, setMonthIndex] = useState<number>(now.getMonth()); // 0–11
@@ -394,49 +385,22 @@ function UberEarningsPlanner() {
   const [daysInMonth, setDaysPerMonth] = useState<number>(DEFAULT_DAYS);
 
   // Derived
-  const { dailyTarget, dphAllIn, dphActive, effectiveHours } = useMemo(() => {
-    const safeHours = Math.max(0.1, Number(hoursPerDay) || 0); // prevent divide-by-zero
-    const safeGoal = Math.max(0, Number(earningsGoal) || 0);
-    const pctIdle = Math.min(95, Math.max(0, Number(noRidePercent) || 0)) / 100; // clamp 0–95%
-
-    const daily = safeGoal / daysInMonth; // goal spread across all days of selected month
-    const allInDph = daily / safeHours; // $/hr including idle
-
-    const effHours = Math.max(0.1, safeHours * (1 - pctIdle));
-    const activeDph = daily / effHours; // $/hr during active time
-
-    return {
-      dailyTarget: daily,
-      dphAllIn: allInDph,
-      dphActive: activeDph,
-      effectiveHours: effHours,
-    };
-  }, [hoursPerDay, earningsGoal, daysInMonth, noRidePercent]);
+  const { dailyTarget, dphAllIn, dphActive, effectiveHours } = useMemo(
+    () =>
+      computePlannerMetrics({
+        earningsGoal,
+        daysInMonth,
+        hoursPerDay,
+        idlePercent: noRidePercent,
+      }),
+    [earningsGoal, daysInMonth, hoursPerDay, noRidePercent]
+  );
 
   // Per‑ride thresholds table
-  type Row = {
-    label: string;
-    ridesUsed: number;
-    minDollarsPerRide: number;
-    maxMilesPerRide: number;
-  };
-  const rows: Row[] = useMemo(() => {
-    const mk = (label: string, ridesUsed: number, dpmFloor: number): Row => {
-      const minDollars = dailyTarget / ridesUsed;
-      const maxMiles = minDollars / dpmFloor;
-      return {
-        label,
-        ridesUsed,
-        minDollarsPerRide: minDollars,
-        maxMilesPerRide: maxMiles,
-      };
-    };
-    return [
-      mk("10 rides", 10, DPM_FLOORS.r10),
-      mk("10–20 rides (using 20)", 20, DPM_FLOORS.r10to20),
-      mk("20–25 rides (using 25)", 25, DPM_FLOORS.r20to25),
-    ];
-  }, [dailyTarget]);
+  const rows: PlannerThresholdRow[] = useMemo(
+    () => buildPlannerThresholdRows(dailyTarget),
+    [dailyTarget]
+  );
 
   const months = [
     "January",
@@ -616,63 +580,21 @@ function MonthlyEarningsEstimator() {
   // Inputs
   const [hoursPerDay, setHoursPerDay] = useState<number>(6);
   const [daysPerMonth, setDaysPerMonth] = useState<number>(25);
+  const CATS = ESTIMATOR_CONSTANTS.RIDE_MIX;
 
-  // Assumptions
-  const IDLE_PCT = 0.3; // 30% idle time per day
-  const BASE_PER_MIN = 0.6; // $/min during active driving (conservative floor)
-  const CATS = {
-    short: { label: "Short (<10 min)", avgMin: 8, rateMult: 1.08, defaultCount: 10 },
-    medium: { label: "Medium (10–20 min)", avgMin: 15, rateMult: 1.0, defaultCount: 4 },
-    long: { label: "Long (20+ min)", avgMin: 25, rateMult: 0.95, defaultCount: 2 },
-  } as const;
-  const patternMinutes =
-    CATS.short.defaultCount * CATS.short.avgMin +
-    CATS.medium.defaultCount * CATS.medium.avgMin +
-    CATS.long.defaultCount * CATS.long.avgMin; // 190
-
-  // Derived
-  const activeMinutesPerDay = useMemo(
-    () => Math.max(0, Number(hoursPerDay) || 0) * 60 * (1 - IDLE_PCT),
-    [hoursPerDay]
+  const {
+    activeMinutesPerDay,
+    dailyCounts,
+    perMin,
+    dailyEarningsFloor,
+    dailyEarningsBlended,
+    monthlyEarningsFloor,
+    monthlyEarningsBlended,
+    blendedPerHr,
+  } = useMemo(
+    () => computeEstimatorMetrics({ hoursPerDay, daysPerMonth }),
+    [hoursPerDay, daysPerMonth]
   );
-  const scale = useMemo(
-    () => (patternMinutes > 0 ? activeMinutesPerDay / patternMinutes : 0),
-    [activeMinutesPerDay]
-  );
-  const dailyCounts = useMemo(
-    () => ({
-      short: CATS.short.defaultCount * scale,
-      medium: CATS.medium.defaultCount * scale,
-      long: CATS.long.defaultCount * scale,
-    }),
-    [scale]
-  );
-  const perMin = {
-    short: BASE_PER_MIN * CATS.short.rateMult,
-    medium: BASE_PER_MIN * CATS.medium.rateMult,
-    long: BASE_PER_MIN * CATS.long.rateMult,
-  } as const;
-
-  const dailyEarningsFloor = useMemo(
-    () => activeMinutesPerDay * BASE_PER_MIN,
-    [activeMinutesPerDay]
-  );
-  const dailyEarningsBlended = useMemo(() => {
-    const short = dailyCounts.short * CATS.short.avgMin * perMin.short;
-    const med = dailyCounts.medium * CATS.medium.avgMin * perMin.medium;
-    const lng = dailyCounts.long * CATS.long.avgMin * perMin.long;
-    return short + med + lng;
-  }, [dailyCounts]);
-
-  const monthlyEarningsFloor = dailyEarningsFloor * Math.max(0, Number(daysPerMonth) || 0);
-  const monthlyEarningsBlended = dailyEarningsBlended * Math.max(0, Number(daysPerMonth) || 0);
-
-  const blendedPerHr = useMemo(() => {
-    // time‑weighted per‑min multiplier of the default mix
-    const mixMinutes = patternMinutes; // 190
-    const weightedMultiplier = (80 * 1.08 + 60 * 1.0 + 50 * 0.95) / mixMinutes; // ≈ 1.0205
-    return BASE_PER_MIN * weightedMultiplier * 60; // $/hr
-  }, []);
 
   return (
     <div className="text-slate-800">
@@ -680,8 +602,8 @@ function MonthlyEarningsEstimator() {
       <header className="mb-6">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Earnings Estimater</h2>
         <p className="mt-2 text-slate-600">
-          Two inputs only. We assume <span className="font-medium">30% idle time</span> and a blended ride mix by duration.
-          Earnings are shown as a conservative floor and a realistic blended estimate.
+          Two inputs only. We assume <span className="font-medium">{ESTIMATOR_CONSTANTS.IDLE_PCT * 100}% idle time</span> and a
+          blended ride mix by duration. Earnings are shown as a conservative floor and a realistic blended estimate.
         </p>
       </header>
 
@@ -730,10 +652,10 @@ function MonthlyEarningsEstimator() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6 text-sm text-slate-600">
         <div className="flex flex-wrap gap-4">
           <div>
-            <span className="font-medium">Idle time:</span> 30% of on‑app time
+            <span className="font-medium">Idle time:</span> {ESTIMATOR_CONSTANTS.IDLE_PCT * 100}% of on‑app time
           </div>
           <div>
-            <span className="font-medium">Active $/min floor:</span> $0.60
+            <span className="font-medium">Active $/min floor:</span> ${ESTIMATOR_CONSTANTS.BASE_PER_MIN.toFixed(2)}
           </div>
           <div>
             <span className="font-medium">Ride mix:</span> 10× short (8m), 4× medium (15m), 2× long (25m) — scaled
@@ -749,12 +671,12 @@ function MonthlyEarningsEstimator() {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="text-sm text-slate-500">Active time per day</div>
           <div className="text-2xl font-semibold">{fmtNumber(activeMinutesPerDay / 60, 2)} h</div>
-          <div className="text-xs text-slate-500">= hours × 70%</div>
+          <div className="text-xs text-slate-500">= hours × {(1 - ESTIMATOR_CONSTANTS.IDLE_PCT) * 100}%</div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="text-sm text-slate-500">Conservative $/hr (active)</div>
-          <div className="text-2xl font-semibold">{fmtNumber(0.6 * 60, 2)}</div>
-          <div className="text-xs text-slate-500">Using $0.60 per active min</div>
+          <div className="text-2xl font-semibold">{fmtNumber(ESTIMATOR_CONSTANTS.BASE_PER_MIN * 60, 2)}</div>
+          <div className="text-xs text-slate-500">Using ${ESTIMATOR_CONSTANTS.BASE_PER_MIN.toFixed(2)} per active min</div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="text-sm text-slate-500">Blended $/hr (active)</div>
@@ -855,49 +777,3 @@ export default function EarningsSuite() {
     </div>
   );
 }
-
-// -----------------------------
-// Lightweight runtime sanity tests (console)
-// -----------------------------
-function near(a: number, b: number, tol = 1.5) {
-  return Math.abs(a - b) <= tol;
-}
-(function runSanityTests() {
-  try {
-    // Estimator math checks for hours=6, days=25
-    const idle = 0.3;
-    const basePerMin = 0.6;
-    const activeMin = 6 * 60 * (1 - idle); // 252
-    const dailyFloor = activeMin * basePerMin; // 151.2
-    const monthlyFloor = dailyFloor * 25; // 3780
-    // Weighted multiplier for mix: (80*1.08 + 60*1 + 50*0.95) / 190 ≈ 1.0205
-    const mixMult = (80 * 1.08 + 60 * 1 + 50 * 0.95) / 190; // ≈ 1.0205
-    const dailyBlend = dailyFloor * mixMult; // ≈ 154.3
-    const monthlyBlend = monthlyFloor * mixMult; // ≈ 3857
-    console.assert(near(monthlyFloor, 3780, 1), "Monthly floor mismatch");
-    console.assert(dailyBlend > dailyFloor, "Blended should exceed floor");
-    console.assert(near(monthlyBlend, 3857, 15), "Monthly blended in expected band");
-
-    // Planner per-minute derivation spot check (goal=1600, hours=6, idle=30%, 30‑day month)
-    const gd = 1600 / 30; // 53.33/day
-    const dphActive = gd / (6 * (1 - 0.3)); // ≈ 12.698 $/hr
-    const perMin = dphActive / 60; // ≈ 0.2116 $/min
-    console.assert(perMin > 0 && perMin < 1, "Planner per-minute sanity");
-
-    // Additional boundary tests
-    console.assert(near(12 * 0.6, 7.2, 0.001), "12m floor exact");
-
-    // On-the-road combined rule checks
-    const pm = 0.6; const dpm = 1.7;
-    const t = 15; const mi = 5;
-    const threshold = Math.max(t * pm, mi * dpm); // max(9, 8.5) = 9
-    console.assert(near(threshold, 9, 0.01), "Combined threshold calc");
-    const offer1 = 9.0; const offer2 = 8.9;
-    console.assert(offer1 >= threshold, "Offer at threshold should accept");
-    console.assert(!(offer2 >= threshold), "Offer below threshold should reject");
-
-    console.log("[Uber Rides] Sanity tests passed.");
-  } catch (e) {
-    console.warn("[Uber Rides] Sanity tests issue:", e);
-  }
-})();
