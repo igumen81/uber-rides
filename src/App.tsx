@@ -6,12 +6,12 @@ import {
 } from "recharts";
 
 /**
- * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimater)
+ * Uber Rides — Tabbed App (On‑the‑road + Planner + Estimator)
  *
  * Tabs:
  *  1) On the road — instant accept/reject using minutes, miles, or both (combined).
  *  2) Earnings Planner — monthly goal, idle%, thresholds.
- *  3) Earnings Estimater — 2‑input (hours/day, days/month) monthly estimator with blended ride mix.
+ *  3) Earnings Estimator — 2‑input (hours/day, days/month) monthly estimator with blended ride mix.
  *
  * Notes:
  *  • Lightweight runtime sanity tests live at the bottom.
@@ -56,7 +56,7 @@ function Tabs({
     <div className="flex items-center gap-2">
       <Item id="road" label="On the road" />
       <Item id="planner" label="Earnings Planner" />
-      <Item id="estimator" label="Earnings Estimater" />
+      <Item id="estimator" label="Earnings Estimator" />
     </div>
   );
 }
@@ -610,7 +610,7 @@ function UberEarningsPlanner() {
 }
 
 // -----------------------------
-// (3) Earnings Estimater — 2 inputs
+// (3) Earnings Estimator — 2 inputs
 // -----------------------------
 function MonthlyEarningsEstimator() {
   // Inputs
@@ -678,7 +678,7 @@ function MonthlyEarningsEstimator() {
     <div className="text-slate-800">
       {/* Header */}
       <header className="mb-6">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Earnings Estimater</h2>
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Earnings Estimator</h2>
         <p className="mt-2 text-slate-600">
           Two inputs only. We assume <span className="font-medium">30% idle time</span> and a blended ride mix by duration.
           Earnings are shown as a conservative floor and a realistic blended estimate.
