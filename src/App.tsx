@@ -195,7 +195,7 @@ function OnTheRoad() {
       </section>
 
 
-      {/* Floors (editable) */}
+      {/* Ride check inputs */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
         <h3 className="text-lg font-semibold mb-3">Check Ride</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
