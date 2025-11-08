@@ -22,8 +22,15 @@ Module._extensions[".ts"] = function loadTs(module, filename) {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const testPath = path.join(__dirname, "calculations.test.ts");
-require(testPath);
+const testFiles = fs
+  .readdirSync(__dirname)
+  .filter((file) => file.endsWith(".test.ts"))
+  .map((file) => path.join(__dirname, file))
+  .sort();
+
+for (const file of testFiles) {
+  require(file);
+}
 
 const vitest = require("vitest");
 if (typeof vitest.runSuites !== "function") {
